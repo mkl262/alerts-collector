@@ -29,7 +29,7 @@ func main() {
 	logLevel := "info"
 
 	// default config file for upstream alertmanagers
-	amConfigFile := "/etc/alerts-collector/config/alertmanager-config/config.yaml"
+	amConfigFile := "/etc/alerts-collector/config.yaml"
 
 	// init command line parameters
 	flag.IntVar(&whOpts.Port, "port", whOpts.Port, "port for the alerts collector.")

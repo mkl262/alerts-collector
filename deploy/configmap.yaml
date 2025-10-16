@@ -8,15 +8,15 @@ metadata:
 data:
   config.yaml: |
     alertmanagers:
-    - http_config:
-        bearer_token_file: /etc/alerts-collector/k8s-token/alerts-collector/token
-        tls_config:
-          ca_file: /etc/alerts-collector/configmap/alertmanager-ca-bundle/service-ca.crt
-          server_name: <REPLACE_THIS_WITH_UPSTREAM_ALERTMMANAGER_SVC_FQDN>
-          insecure_skip_verify: false
-      scheme: https
-      static_configs:
-      - <REPLACE_THIS_WITH_UPSTREAM_ALERTMMANAGER_ENDPOINT>
-      api_version: v2
----
-
+      - static_configs:
+          - <REPLACE_THIS_WITH_UPSTREAM_ALERTMMANAGER_ENDPOINT>
+        scheme: https
+        api_version: v2
+        http_config:
+          bearer_token_file: /etc/alerts-collector/k8s-token/token
+          tls_config:
+            insecure_skip_verify: false
+            ca_file: /etc/alerts-collector/alertmanager-ca-bundle/service-ca.crt
+            server_name: <REPLACE_THIS_WITH_UPSTREAM_ALERTMMANAGER_SVC_FQDN>
+            cert_file: /etc/alerts-collector/certs/tls.crt
+            key_file: /etc/alerts-collector/certs/tls.key
