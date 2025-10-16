@@ -13,8 +13,8 @@ import (
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
 
-	"github.com/open-cluster-management/alerts-collector/pkg/forwarder"
-	"github.com/open-cluster-management/alerts-collector/pkg/webhook"
+	"github.com/morvencao/alerts-collector/pkg/forwarder"
+	"github.com/morvencao/alerts-collector/pkg/webhook"
 )
 
 func main() {

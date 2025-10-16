@@ -14,7 +14,7 @@ import (
 	"github.com/go-kit/kit/log/level"
 	"github.com/prometheus/alertmanager/template"
 
-	"github.com/open-cluster-management/alerts-collector/pkg/forwarder"
+	"github.com/morvencao/alerts-collector/pkg/forwarder"
 )
 
 // webhook server options

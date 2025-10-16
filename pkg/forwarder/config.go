@@ -131,7 +131,7 @@ func createHTTPClient(clientCfg ClientConfig, name string) (*http.Client, error)
 		return nil, err
 	}
 
-	client, err := config.NewClientFromConfig(httpClientConfig, name, false, false)
+	client, err := config.NewClientFromConfig(httpClientConfig, name)
 	if err != nil {
 		return nil, err
 	}

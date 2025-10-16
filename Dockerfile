@@ -1,13 +1,16 @@
 # Copyright Contributors to the Open Cluster Management project
 
-FROM registry.ci.openshift.org/open-cluster-management/builder:go1.15-linux AS builder
+FROM golang:1.25-alpine AS builder
 
-WORKDIR /workspace
+WORKDIR /app
+
 COPY . .
 
-RUN CGO_ENABLED=0 go build -a -installsuffix cgo -i -o bin/alerts-collector ./cmd/main.go
+RUN go mod download
 
-FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
+RUN CGO_ENABLED=0 go build -o alerts-collector ./cmd/main.go
+
+FROM scratch
 
 ARG VCS_REF
 ARG VCS_URL
@@ -40,12 +43,8 @@ LABEL org.label-schema.vendor="Red Hat" \
     io.k8s.description="$IMAGE_DESCRIPTION" \
     io.openshift.tags="$IMAGE_OPENSHIFT_TAGS"
 
-ENV CMD_ENTRYPOINT=/usr/local/bin/alerts-collector \
-    USER_UID=1001 \
-    USER_NAME=alerts-collector
-
 # install the binary
-COPY --from=builder /workspace/bin/alerts-collector ${CMD_ENTRYPOINT}
-USER ${USER_UID}
+COPY --from=builder --chown=root:root --chmod=755 /app/alerts-collector /alerts-collector
+USER 1001
 
-ENTRYPOINT ["/usr/local/bin/alerts-collector"]
+ENTRYPOINT ["/alerts-collector"]
