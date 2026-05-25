@@ -67,8 +67,8 @@ route:
   ...
   routes:
   ...
-  - match:
-      alertname: "foo"
+  - matchers:
+      - alertname="foo"
     receiver: "AlertsCollector"
 EOF
 $ kubectl -n openshift-monitoring create secret generic alertmanager-main --from-file=alertmanager.yaml --dry-run -o yaml | kubectl apply -n openshift-monitoring -f -
@@ -84,7 +84,7 @@ $ kubectl -n open-cluster-management-addon-observability apply -f deploy/service
 
 ```
 $ kubectl -n openshift-monitoring exec -it alertmanager-main-0 -c alertmanager -- bash
-bash-4.4$ amtool alert add --alertmanager.url=http://127.0.0.1:9093 alertname=foo node=bar
+bash-4.4$ amtool alert add --alertmanager.url=http://127.0.0.1:9093 alertname="foo" node="bar"
 bash-4.4$ amtool alert --alertmanager.url=http://127.0.0.1:9093
 Alertname        Starts At                Summary
 foo              2021-04-24 07:11:41 UTC
@@ -95,6 +95,17 @@ bash-4.4$ amtool alert --alertmanager.url=http://127.0.0.1:9093
 Alertname                      Starts At                Summary                          State
 foo                            2021-04-24 07:11:41 UTC                                   active
 ```
+
+## UTF-8 matcher warnings
+
+Alertmanager 0.27+ logs this warning when a **matcher string** (not alert JSON) is valid only under the classic parser—for example in `route.matchers`, `inhibit_rules`, silences, or `amtool` label arguments. `POST /api/v2/alerts` does not use that parser.
+
+If the warning persists after updating the route example above:
+
+1. Check the log fields `origin=` and `input=` (for example `origin=config` points at Alertmanager YAML on that cluster).
+2. Replace deprecated `match` / `match_re` / `source_match` / `target_match` with `matchers` / `source_matchers` / `target_matchers`.
+3. Double-quote values and regexes; escape backslashes in regexes (for example `severity=~"warning|critical"` and `"\\d+"` for `\d+`).
+4. Validate config with `amtool check-config alertmanager.yaml` before reload.
 
 # Roadmap
 

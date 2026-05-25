@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
@@ -80,21 +79,21 @@ func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	}
 
 	level.Info(wh.logger).Log("alert", fmt.Sprintf("GroupLabels=%v, CommonLabels=%v", data.GroupLabels, data.CommonLabels))
-	for _, alert := range data.Alerts {
-		level.Debug(wh.logger).Log("alert", fmt.Sprintf("status=%s,Labels=%v,Annotations=%v,StartsAt=%v,EndsAt=%v", alert.Status, alert.Labels, alert.Annotations, alert.StartsAt, alert.EndsAt))
-		severity := alert.Labels["severity"]
-		switch strings.ToUpper(severity) {
-		case "CRITICAL":
-			level.Debug(wh.logger).Log("alert", fmt.Sprintf("action on severity: %s", severity))
-			// TODO(morvencao): forward alerts according to the alert severity
-		case "WARNING":
-			level.Debug(wh.logger).Log("alert", fmt.Sprintf("action on severity: %s", severity))
-			// TODO(morvencao): forward alerts according to the alert severity
-		default:
-			level.Debug(wh.logger).Log("alert", fmt.Sprintf("no action on severity: %s", severity))
-			// TODO(morvencao): forward alerts according to the alert severity
-		}
-	}
+	// for _, alert := range data.Alerts {
+	// 	level.Debug(wh.logger).Log("alert", fmt.Sprintf("status=%s,Labels=%v,Annotations=%v,StartsAt=%v,EndsAt=%v", alert.Status, alert.Labels, alert.Annotations, alert.StartsAt, alert.EndsAt))
+	// 	severity := alert.Labels["severity"]
+	// 	switch strings.ToUpper(severity) {
+	// 	case "critical":
+	// 		level.Debug(wh.logger).Log("alert", fmt.Sprintf("action on severity: %s", severity))
+	// 		// TODO(morvencao): forward alerts according to the alert severity
+	// 	case "warning":
+	// 		level.Debug(wh.logger).Log("alert", fmt.Sprintf("action on severity: %s", severity))
+	// 		// TODO(morvencao): forward alerts according to the alert severity
+	// 	default:
+	// 		level.Debug(wh.logger).Log("alert", fmt.Sprintf("no action on severity: %s", severity))
+	// 		// TODO(morvencao): forward alerts according to the alert severity
+	// 	}
+	// }
 
 	level.Info(wh.logger).Log("msg", "prepare to forward alerts to upstream alertmanagers")
 	// forward the alerts

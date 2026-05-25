@@ -17,8 +17,6 @@ import (
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/kit/log/level"
-	"github.com/go-openapi/strfmt"
-	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/prometheus/alertmanager/template"
 	"go.uber.org/atomic"
 )
@@ -85,7 +83,7 @@ func (am *Alertmanager) postAlerts(ctx context.Context, u url.URL, r io.Reader) 
 		return fmt.Errorf("failed to send request to %q: %v", u.String(), err)
 	}
 	defer resp.Body.Close()
-	level.Info(am.logger).Log("msg", "post an alert")
+	level.Info(am.logger).Log("msg", "posted alerts", "url", u.String())
 
 	if resp.StatusCode/100 != 2 {
 		return fmt.Errorf("bad response status %v from %q", resp.Status, u.String())
@@ -158,19 +156,7 @@ func (fwder *Forwarder) Forward(ctx context.Context, alerts template.Alerts) err
 				return err
 			}
 		case APIv2:
-			pAlerts := make(models.PostableAlerts, 0, len(alerts))
-			for _, alt := range alerts {
-				pAlerts = append(pAlerts, &models.PostableAlert{
-					Annotations: kvToLabelSet(alt.Annotations),
-					EndsAt:      strfmt.DateTime(alt.EndsAt),
-					StartsAt:    strfmt.DateTime(alt.StartsAt),
-					Alert: models.Alert{
-						GeneratorURL: strfmt.URI(alt.GeneratorURL),
-						Labels:       kvToLabelSet(alt.Labels),
-					},
-				})
-			}
-			if b, err = json.Marshal(pAlerts); err != nil {
+			if b, err = marshalPostableAlertsV2(alerts); err != nil {
 				level.Warn(fwder.logger).Log("msg", "encoding alerts for v2 API failed", "err", err)
 				return err
 			}
@@ -195,7 +181,7 @@ func (fwder *Forwarder) Forward(ctx context.Context, alerts template.Alerts) err
 					level.Warn(fwder.logger).Log(
 						"msg", "forwarding alerts failed",
 						"alertmanager", u.Host,
-						"alerts", string(payload[am.version]),
+						"numAlerts", len(alerts),
 						"err", err,
 					)
 					return
@@ -213,11 +199,3 @@ func (fwder *Forwarder) Forward(ctx context.Context, alerts template.Alerts) err
 	return fmt.Errorf("failed to send %d alerts to all alertmanagers", len(alerts))
 }
 
-// kvToLabelSet translate KC to LabelSet
-func kvToLabelSet(kvs template.KV) models.LabelSet {
-	ls := make(models.LabelSet, len(kvs))
-	for k, v := range kvs {
-		ls[k] = v
-	}
-	return ls
-}
