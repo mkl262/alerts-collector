@@ -1,11 +1,11 @@
 module github.com/morvencao/alerts-collector
 
-go 1.26
+go 1.27
 
 require (
 	github.com/go-kit/kit v0.13.0
-	github.com/prometheus/alertmanager v0.33.1
-	github.com/prometheus/common v0.69.0
+	github.com/prometheus/alertmanager v0.34.0
+	github.com/prometheus/common v0.71.0
 	go.uber.org/atomic v1.11.0
 	gopkg.in/yaml.v2 v2.4.0
 )
@@ -18,16 +18,15 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
-	github.com/prometheus/client_golang v1.23.2 // indirect
-	github.com/prometheus/client_model v0.6.2 // indirect
-	github.com/prometheus/procfs v0.21.1 // indirect
+	github.com/prometheus/client_golang v1.24.1 // indirect
+	github.com/prometheus/client_model v0.6.3 // indirect
+	github.com/prometheus/procfs v0.22.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
-	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/net v0.58.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
-	google.golang.org/protobuf v1.36.11 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
+	google.golang.org/protobuf v1.36.12 // indirect
 )
