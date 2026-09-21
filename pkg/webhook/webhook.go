@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/alertmanager/template"
 
 	"github.com/morvencao/alerts-collector/pkg/forwarder"
@@ -70,7 +70,7 @@ func (wh *Webhook) Shutdown(ctx context.Context) error {
 
 // Serve handler for the webhook server
 func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
-	defer r.Body.Close()
+	defer func() { _ = r.Body.Close() }()
 
 	data := &template.Data{}
 	if err := json.NewDecoder(r.Body).Decode(data); err != nil {
@@ -78,7 +78,7 @@ func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	level.Info(wh.logger).Log("alert", fmt.Sprintf("GroupLabels=%v, CommonLabels=%v", data.GroupLabels, data.CommonLabels))
+	_ = level.Info(wh.logger).Log("alert", fmt.Sprintf("GroupLabels=%v, CommonLabels=%v", data.GroupLabels, data.CommonLabels))
 	// for _, alert := range data.Alerts {
 	// 	level.Debug(wh.logger).Log("alert", fmt.Sprintf("status=%s,Labels=%v,Annotations=%v,StartsAt=%v,EndsAt=%v", alert.Status, alert.Labels, alert.Annotations, alert.StartsAt, alert.EndsAt))
 	// 	severity := alert.Labels["severity"]
@@ -95,7 +95,7 @@ func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	// 	}
 	// }
 
-	level.Info(wh.logger).Log("msg", "prepare to forward alerts to upstream alertmanagers")
+	_ = level.Info(wh.logger).Log("msg", "prepare to forward alerts to upstream alertmanagers")
 	// forward the alerts
 	// TODO(morvencao): forward alerts according to the alert severity
 	if err := wh.forwarder.Forward(context.TODO(), data.Alerts); err != nil {
@@ -106,7 +106,7 @@ func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
 
 // Healthz method for webhook server to return healthy status
 func (wh *Webhook) Healthz(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "OK!")
+	_, _ = fmt.Fprint(w, "OK!")
 }
 
 type response struct {
@@ -124,5 +124,5 @@ func asJson(w http.ResponseWriter, status int, message string) {
 	json := string(bytes[:])
 
 	w.WriteHeader(status)
-	fmt.Fprint(w, json)
+	_, _ = fmt.Fprint(w, json)
 }

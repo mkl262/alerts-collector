@@ -13,12 +13,12 @@ import (
 	"path"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 	"github.com/prometheus/alertmanager/template"
-	"go.uber.org/atomic"
 )
 
 // Alertmanager is an HTTP client that can send alerts to an alertmanager endpoint
@@ -82,8 +82,8 @@ func (am *Alertmanager) postAlerts(ctx context.Context, u url.URL, r io.Reader) 
 	if err != nil {
 		return fmt.Errorf("failed to send request to %q: %v", u.String(), err)
 	}
-	defer resp.Body.Close()
-	level.Info(am.logger).Log("msg", "posted alerts", "url", u.String())
+	defer func() { _ = resp.Body.Close() }()
+	_ = level.Info(am.logger).Log("msg", "posted alerts", "url", u.String())
 
 	if resp.StatusCode/100 != 2 {
 		return fmt.Errorf("bad response status %v from %q", resp.Status, u.String())
@@ -106,7 +106,7 @@ func NewForwarder(l log.Logger, amConfigFile string) (*Forwarder, error) {
 	}
 
 	if len(alertCfg.Alertmanagers) == 0 {
-		level.Info(l).Log("msg", "no alertmanager configured")
+		_ = level.Info(l).Log("msg", "no alertmanager configured")
 	}
 
 	var alertmanagers []*Alertmanager
@@ -139,7 +139,7 @@ func NewForwarder(l log.Logger, amConfigFile string) (*Forwarder, error) {
 // Forward an alert batch to all given Alertmanager
 func (fwder *Forwarder) Forward(ctx context.Context, alerts template.Alerts) error {
 	if len(alerts) == 0 {
-		level.Warn(fwder.logger).Log("msg", "no alert to forward")
+		_ = level.Warn(fwder.logger).Log("msg", "no alert to forward")
 		return nil
 	}
 
@@ -152,12 +152,12 @@ func (fwder *Forwarder) Forward(ctx context.Context, alerts template.Alerts) err
 		switch version {
 		case APIv1:
 			if b, err = json.Marshal(alerts); err != nil {
-				level.Warn(fwder.logger).Log("msg", "encoding alerts for v1 API failed", "err", err)
+				_ = level.Warn(fwder.logger).Log("msg", "encoding alerts for v1 API failed", "err", err)
 				return err
 			}
 		case APIv2:
 			if b, err = marshalPostableAlertsV2(alerts); err != nil {
-				level.Warn(fwder.logger).Log("msg", "encoding alerts for v2 API failed", "err", err)
+				_ = level.Warn(fwder.logger).Log("msg", "encoding alerts for v2 API failed", "err", err)
 				return err
 			}
 		}
@@ -174,11 +174,11 @@ func (fwder *Forwarder) Forward(ctx context.Context, alerts template.Alerts) err
 			go func(am *Alertmanager, u url.URL) {
 				defer wg.Done()
 
-				level.Debug(fwder.logger).Log("msg", "forward alerts", "alertmanager", u.Host, "numAlerts", len(alerts))
+				_ = level.Debug(fwder.logger).Log("msg", "forward alerts", "alertmanager", u.Host, "numAlerts", len(alerts))
 				u.Path = path.Join(u.Path, fmt.Sprintf("/api/%s/alerts", string(am.version)))
 
 				if err := am.postAlerts(ctx, u, bytes.NewReader(payload[am.version])); err != nil {
-					level.Warn(fwder.logger).Log(
+					_ = level.Warn(fwder.logger).Log(
 						"msg", "forwarding alerts failed",
 						"alertmanager", u.Host,
 						"numAlerts", len(alerts),
@@ -186,7 +186,7 @@ func (fwder *Forwarder) Forward(ctx context.Context, alerts template.Alerts) err
 					)
 					return
 				}
-				numSuccess.Inc()
+				numSuccess.Add(1)
 			}(am, *u)
 		}
 	}
@@ -195,7 +195,6 @@ func (fwder *Forwarder) Forward(ctx context.Context, alerts template.Alerts) err
 	if numSuccess.Load() > 0 {
 		return nil
 	}
-	level.Warn(fwder.logger).Log("msg", "failed to send alerts to all alertmanagers", "numAlerts", len(alerts))
+	_ = level.Warn(fwder.logger).Log("msg", "failed to send alerts to all alertmanagers", "numAlerts", len(alerts))
 	return fmt.Errorf("failed to send %d alerts to all alertmanagers", len(alerts))
 }
-

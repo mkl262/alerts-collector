@@ -10,8 +10,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/go-kit/kit/log"
-	"github.com/go-kit/kit/log/level"
+	"github.com/go-kit/log"
+	"github.com/go-kit/log/level"
 
 	"github.com/morvencao/alerts-collector/pkg/forwarder"
 	"github.com/morvencao/alerts-collector/pkg/webhook"
@@ -50,35 +50,35 @@ func main() {
 	// create new alerts forwarder with alertmanager configuration file
 	fwder, err := forwarder.NewForwarder(l, amConfigFile)
 	if err != nil {
-		level.Error(l).Log("msg", "failed to create alert forwarder", "err", err)
+		_ = level.Error(l).Log("msg", "failed to create alert forwarder", "err", err)
 		os.Exit(1)
 	}
 
 	whOpts.Forwarder = fwder
 	webhookSvr, err := webhook.NewWebhook(whOpts)
 	if err != nil {
-		level.Error(l).Log("msg", "failed to create webhook server", "err", err)
+		_ = level.Error(l).Log("msg", "failed to create webhook server", "err", err)
 		os.Exit(1)
 	}
 
 	// start webhook server in new rountine
 	go func() {
 		if err := webhookSvr.Run(); err != nil {
-			level.Error(l).Log("msg", "failed to start webhook server", "err", err)
+			_ = level.Error(l).Log("msg", "failed to start webhook server", "err", err)
 			os.Exit(1)
 		}
 	}()
 
-	level.Info(l).Log("msg", "alerts collector initialized")
+	_ = level.Info(l).Log("msg", "alerts collector initialized")
 
 	// listening OS shutdown singal
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	<-signalChan
 
-	level.Info(l).Log("msg", "got OS shutdown signal, shutting down webhook server gracefully...")
+	_ = level.Info(l).Log("msg", "got OS shutdown signal, shutting down webhook server gracefully...")
 	if err = webhookSvr.Shutdown(context.TODO()); err != nil {
-		level.Error(l).Log("msg", "failed to shut down the webhook server gracefully", "err", err)
+		_ = level.Error(l).Log("msg", "failed to shut down the webhook server gracefully", "err", err)
 	}
 }
 

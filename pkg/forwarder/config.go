@@ -3,13 +3,14 @@
 package forwarder
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
 
 	"github.com/prometheus/common/config"
 	"github.com/prometheus/common/model"
-	"gopkg.in/yaml.v2"
+	"go.yaml.in/yaml/v3"
 )
 
 // APIVersion represents the API version of the alertmanager endpoint
@@ -87,13 +88,15 @@ type EndpointsConfig struct {
 
 // loadAlertingConfig loads configuraration about upstream alertmanagers from YAML format file
 func loadAlertingConfig(configFile string) (*AlertingConfig, error) {
-	configYAML, err := ioutil.ReadFile(configFile)
+	configYAML, err := os.ReadFile(configFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load configurations from file %s: %v", configFile, err)
 	}
 
 	alertingCfg := &AlertingConfig{}
-	if err := yaml.UnmarshalStrict(configYAML, alertingCfg); err != nil {
+	dec := yaml.NewDecoder(bytes.NewReader(configYAML))
+	dec.KnownFields(true)
+	if err := dec.Decode(alertingCfg); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal configurations: %v", err)
 	}
 	return alertingCfg, nil
