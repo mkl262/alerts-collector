@@ -6,7 +6,10 @@ include ./Configfile
 # Image URL to use all building/pushing image targets
 IMG ?= quay.io/morvencao/alerts-collector:latest
 
-.PHONY: fmt vet unit-tests e2e-tests build docker-build docker-pus cleanh
+# Parent go.work does not include this module; ignore it.
+export GOWORK=off
+
+.PHONY: fmt vet lint unit-tests e2e-tests build docker-build docker-push clean
 
 # Run go fmt against code
 fmt:
@@ -16,8 +19,12 @@ fmt:
 vet:
 	@go vet ./...
 
+# Run golangci-lint against code
+lint:
+	@golangci-lint run ./...
+
 # Run unit tests
-unit-tests: fmt vet
+unit-tests: fmt vet lint
 	@echo "Run unit-tests"
 	@go test -race ./...
 
@@ -27,7 +34,7 @@ e2e-tests:
 
 # Build the binary
 build: unit-tests
-	@CGO_ENABLED=0 go build -a -installsuffix cgo -i -o bin/alerts-collector ./cmd/main.go
+	@CGO_ENABLED=0 go build -a -installsuffix cgo -o bin/alerts-collector ./cmd/main.go
 
 # Build the docker image
 docker-build: build
