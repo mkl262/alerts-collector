@@ -20,24 +20,25 @@ spec:
           image: quay.io/morvencao/alerts-collector:latest
           imagePullPolicy: IfNotPresent
           args:
-            - --port=8443
+            - --port=8080
             - --log-level=debug
-            - --tls-cert=/etc/alerts-collector/certs/tls.crt
-            - --tls-key=/etc/alerts-collector/certs/tls.key
+            # - --tls
+            # - --tls-cert=/etc/alerts-collector/certs/tls.crt
+            # - --tls-key=/etc/alerts-collector/certs/tls.key
             - --alertmanagers.config-file=/etc/alerts-collector/config.yaml
           ports:
-            - name: web
-              containerPort: 8443
+            - name: http
+              containerPort: 8080
           livenessProbe:
             httpGet:
               scheme: HTTPS
               path: /healthz
-              port: web
+              port: http
           readinessProbe:
             httpGet:
               scheme: HTTPS
               path: /healthz
-              port: web
+              port: http
           resources:
             requests:
               cpu: 10m

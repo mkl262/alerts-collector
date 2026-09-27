@@ -59,7 +59,7 @@ receivers:
 ...
 - name: "AlertsCollector"
   webhook_configs:
-  - url: "https://alerts-collector.open-cluster-management-addon-observability.svc:8443/webhook"
+  - url: "https://alerts-collector.open-cluster-management-addon-observability.svc:8080/webhook"
     http_config:
       tls_config:
         insecure_skip_verify: true

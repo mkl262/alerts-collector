@@ -18,9 +18,10 @@ import (
 )
 
 func main() {
-	// default configuration for webhook server
+	// default configuration for webhook server (TLS disabled by default)
 	whOpts := &webhook.Options{
-		Port:     8443,
+		Port:     8080,
+		TLS:      false,
 		CertFile: "/etc/alerts-collector/certs/tls.crt",
 		KeyFile:  "/etc/alerts-collector/certs/tls.key",
 	}
@@ -34,6 +35,7 @@ func main() {
 	// init command line parameters
 	flag.IntVar(&whOpts.Port, "port", whOpts.Port, "port for the alerts collector.")
 	flag.StringVar(&logLevel, "log-level", logLevel, "Log filtering level. e.g info, debug, warn, error.")
+	flag.BoolVar(&whOpts.TLS, "tls", whOpts.TLS, "Enable TLS listener for the webhook server.")
 	flag.StringVar(&whOpts.CertFile, "tls-cert", whOpts.CertFile, "File containing the x509 Certificate for HTTPS.")
 	flag.StringVar(&whOpts.KeyFile, "tls-key", whOpts.KeyFile, "File containing the x509 private key to --tlsCertFile.")
 	flag.StringVar(&amConfigFile, "alertmanagers.config-file", amConfigFile, "YAML format file containing the configuration of upstream alertmanagers.")

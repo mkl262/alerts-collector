@@ -19,6 +19,7 @@ import (
 // webhook server options
 type Options struct {
 	Port      int                  // webhook server port
+	TLS       bool                 // enable TLS listener (disabled by default)
 	CertFile  string               // path to the x509 certificate for https
 	KeyFile   string               // path to the x509 private key matching `CertFile`
 	Logger    log.Logger           // logger for the webhook server
@@ -29,23 +30,29 @@ type Options struct {
 type Webhook struct {
 	logger    log.Logger           // logger for the webhook server
 	forwarder *forwarder.Forwarder // alert forwarder for the the webhook server
+	tls       bool                 // whether the server listens with TLS
 	server    *http.Server         // http server for the webhook
 }
 
 // NewWebhook construct the new webhook server
 func NewWebhook(opts *Options) (*Webhook, error) {
-	pair, err := tls.LoadX509KeyPair(opts.CertFile, opts.KeyFile)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load key pair: %v", err)
+	server := &http.Server{
+		Addr: fmt.Sprintf(":%v", opts.Port),
+	}
+
+	if opts.TLS {
+		pair, err := tls.LoadX509KeyPair(opts.CertFile, opts.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load key pair: %v", err)
+		}
+		server.TLSConfig = &tls.Config{Certificates: []tls.Certificate{pair}}
 	}
 
 	return &Webhook{
 		logger:    opts.Logger,
 		forwarder: opts.Forwarder,
-		server: &http.Server{
-			Addr:      fmt.Sprintf(":%v", opts.Port),
-			TLSConfig: &tls.Config{Certificates: []tls.Certificate{pair}},
-		},
+		tls:       opts.TLS,
+		server:    server,
 	}, nil
 }
 
@@ -57,7 +64,13 @@ func (wh *Webhook) Run() error {
 	mux.HandleFunc("/healthz", wh.Healthz)
 	wh.server.Handler = mux
 
-	if err := wh.server.ListenAndServeTLS("", ""); err != nil {
+	var err error
+	if wh.tls {
+		err = wh.server.ListenAndServeTLS("", "")
+	} else {
+		err = wh.server.ListenAndServe()
+	}
+	if err != nil {
 		return fmt.Errorf("failed to listen and serve webhook server: %v", err)
 	}
 	return nil

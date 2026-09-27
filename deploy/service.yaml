@@ -10,9 +10,9 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-    - name: web
-      port: 8443
+    - name: http
+      port: 8080
       protocol: TCP
-      targetPort: web
+      targetPort: http
   selector:
     app: alerts-collector
