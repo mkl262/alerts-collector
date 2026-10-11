@@ -113,6 +113,7 @@ func (wh *Webhook) Serve(w http.ResponseWriter, r *http.Request) {
 	// TODO(morvencao): forward alerts according to the alert severity
 	if err := wh.forwarder.Forward(context.TODO(), data.Alerts); err != nil {
 		asJson(w, http.StatusInternalServerError, err.Error())
+		return
 	}
 	asJson(w, http.StatusOK, "success")
 }
