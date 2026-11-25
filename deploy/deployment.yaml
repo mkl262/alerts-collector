@@ -10,11 +10,21 @@ spec:
   selector:
     matchLabels:
       app: alerts-collector
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 50%
+      maxSurge: 100%
   template:
     metadata:
       labels:
         app: alerts-collector
     spec:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+        fsGroup: 1001
       containers:
         - name: alerts-collector
           image: quay.io/morvencao/alerts-collector:latest
@@ -29,20 +39,40 @@ spec:
           ports:
             - name: http
               containerPort: 8080
-          livenessProbe:
-            httpGet:
-              scheme: HTTPS
-              path: /healthz
-              port: http
           readinessProbe:
+            periodSeconds: 10
+            initialDelaySeconds: 0
+            failureThreshold: 3
+            successThreshold: 2
+            timeoutSeconds: 1
             httpGet:
-              scheme: HTTPS
-              path: /healthz
+              scheme: HTTP
               port: http
+              path: /healthz
+          livenessProbe:
+            periodSeconds: 10
+            initialDelaySeconds: 60
+            failureThreshold: 6
+            timeoutSeconds: 1
+            httpGet:
+              scheme: HTTP
+              port: http
+              path: /healthz
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
           resources:
             requests:
               cpu: 10m
               memory: 30Mi
+            limits:
+              cpu: 100m
+              memory: 300Mi
           volumeMounts:
             - name: alerts-collector-config
               mountPath: /etc/alerts-collector
