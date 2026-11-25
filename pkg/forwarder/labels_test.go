@@ -31,6 +31,24 @@ func TestSanitizeKVRejectsInvalidName(t *testing.T) {
 	}
 }
 
+func TestSanitizeKVRejectsEmptySet(t *testing.T) {
+	t.Parallel()
+
+	_, err := sanitizeKV(template.KV{})
+	if err == nil {
+		t.Fatal("expected error for empty label set")
+	}
+}
+
+func TestSanitizeKVRejectsInvalidValue(t *testing.T) {
+	t.Parallel()
+
+	_, err := sanitizeKV(template.KV{"alertname": "foo\xff"})
+	if err == nil {
+		t.Fatal("expected error for invalid label value")
+	}
+}
+
 func TestMarshalPostableAlertsV2OmitsEmptyGeneratorURL(t *testing.T) {
 	t.Parallel()
 

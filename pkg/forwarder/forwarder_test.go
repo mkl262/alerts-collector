@@ -8,6 +8,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -87,6 +90,160 @@ func TestForwardSucceedsWhenOneEndpointIsUnreachable(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected success when one endpoint is unreachable but another succeeds, got: %v", err)
 	}
+}
+
+func TestForwardEmptyAlerts(t *testing.T) {
+	t.Parallel()
+
+	fwder := &Forwarder{logger: log.NewNopLogger()}
+	if err := fwder.Forward(context.Background(), nil); err != nil {
+		t.Fatalf("expected nil error for empty alerts, got: %v", err)
+	}
+}
+
+func TestForwardAPIv1(t *testing.T) {
+	t.Parallel()
+
+	var gotPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		_, _ = io.Copy(io.Discard, r.Body)
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+	fwder := &Forwarder{
+		logger: log.NewNopLogger(),
+		alertmanagers: []*Alertmanager{{
+			logger:    log.NewNopLogger(),
+			endpoints: []*url.URL{u},
+			client:    &http.Client{Timeout: 2 * time.Second},
+			timeout:   2 * time.Second,
+			version:   APIv1,
+		}},
+		versions: []APIVersion{APIv1},
+	}
+	if err := fwder.Forward(context.Background(), sampleAlerts()); err != nil {
+		t.Fatalf("Forward: %v", err)
+	}
+	if gotPath != "/api/v1/alerts" {
+		t.Fatalf("expected /api/v1/alerts, got %q", gotPath)
+	}
+}
+
+func TestNewAlertmanager(t *testing.T) {
+	t.Parallel()
+
+	am, err := NewAlertmanager(log.NewNopLogger(), AlertmanagerConfig{
+		EndpointsConfig: EndpointsConfig{
+			StaticAddresses: []string{"alertmanager.example.com:9093"},
+			Scheme:          "http",
+			PathPrefix:      "/prefix",
+		},
+		APIVersion: APIv2,
+		Timeout:    0,
+	})
+	if err != nil {
+		t.Fatalf("NewAlertmanager: %v", err)
+	}
+	if len(am.endpoints) != 1 {
+		t.Fatalf("expected 1 endpoint, got %d", len(am.endpoints))
+	}
+	if am.endpoints[0].Host != "alertmanager.example.com:9093" {
+		t.Fatalf("unexpected host: %q", am.endpoints[0].Host)
+	}
+	if am.endpoints[0].Path != "/prefix" {
+		t.Fatalf("unexpected path: %q", am.endpoints[0].Path)
+	}
+}
+
+func TestNewAlertmanagerRequiresEndpoints(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewAlertmanager(log.NewNopLogger(), AlertmanagerConfig{})
+	if err == nil {
+		t.Fatal("expected error when endpoints are missing")
+	}
+}
+
+func TestNewForwarder(t *testing.T) {
+	t.Parallel()
+
+	path := writeAlertingConfigFile(t, `alertmanagers:
+  - static_configs:
+      - alertmanager.example.com:9093
+    scheme: http
+    api_version: v2
+    timeout: 2s
+`)
+	fwder, err := NewForwarder(log.NewNopLogger(), path)
+	if err != nil {
+		t.Fatalf("NewForwarder: %v", err)
+	}
+	if len(fwder.alertmanagers) != 1 {
+		t.Fatalf("expected 1 alertmanager, got %d", len(fwder.alertmanagers))
+	}
+	if len(fwder.versions) != 1 || fwder.versions[0] != APIv2 {
+		t.Fatalf("unexpected versions: %#v", fwder.versions)
+	}
+}
+
+func TestNewForwarderEmptyConfig(t *testing.T) {
+	t.Parallel()
+
+	path := writeAlertingConfigFile(t, "alertmanagers: []\n")
+	fwder, err := NewForwarder(log.NewNopLogger(), path)
+	if err != nil {
+		t.Fatalf("NewForwarder: %v", err)
+	}
+	if len(fwder.alertmanagers) != 0 {
+		t.Fatalf("expected no alertmanagers, got %d", len(fwder.alertmanagers))
+	}
+}
+
+func TestNewForwarderMissingFile(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewForwarder(log.NewNopLogger(), "does-not-exist.yaml")
+	if err == nil {
+		t.Fatal("expected error for missing config file")
+	}
+}
+
+func TestPostAlertsDefaultTimeout(t *testing.T) {
+	t.Parallel()
+
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer srv.Close()
+
+	u, err := url.Parse(srv.URL)
+	if err != nil {
+		t.Fatalf("parse url: %v", err)
+	}
+	am := &Alertmanager{
+		logger:  log.NewNopLogger(),
+		client:  &http.Client{},
+		timeout: 0,
+	}
+	if err := am.postAlerts(context.Background(), *u, strings.NewReader(`[]`)); err != nil {
+		t.Fatalf("postAlerts: %v", err)
+	}
+}
+
+func writeAlertingConfigFile(t *testing.T, content string) string {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatalf("write config: %v", err)
+	}
+	return path
 }
 
 func newTestForwarder(t *testing.T, rawURLs ...string) *Forwarder {

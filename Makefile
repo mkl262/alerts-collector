@@ -17,7 +17,7 @@ LDFLAGS := -s -w \
 	-X github.com/morvencao/alerts-collector/pkg/version.GitCommit=$(GIT_COMMIT) \
 	-X github.com/morvencao/alerts-collector/pkg/version.BuildDate=$(BUILD_DATE)
 
-.PHONY: fmt vet lint unit-tests e2e-tests build docker-build docker-push clean
+.PHONY: fmt vet lint test test-coverage unit-tests e2e-tests build docker-build docker-push clean
 
 # Run go fmt against code
 fmt:
@@ -32,6 +32,17 @@ lint:
 	@golangci-lint run ./...
 
 # Run unit tests
+test:
+	@go test ./... -count=1 -timeout=60s
+
+# Run unit tests with coverage report
+test-coverage:
+	@go test ./... -coverprofile=coverage.out -coverpkg=./... -count=1 -timeout=60s
+	@go tool cover -func=coverage.out
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "HTML coverage report written to coverage.html"
+
+# Run unit tests with fmt, vet, lint, and race detector
 unit-tests: fmt vet lint
 	@echo "Run unit-tests"
 	@go test -race ./...
@@ -53,4 +64,4 @@ docker-push: docker-build
 	@docker push ${IMG}
 
 clean:
-	@rm -rf ./bin
+	@rm -rf ./bin coverage.out coverage.html
