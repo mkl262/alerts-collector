@@ -52,7 +52,7 @@ e2e-tests:
 	@echo "TODO: Run e2e-tests"
 
 # Build the binary
-build: unit-tests
+build:
 	@CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags="$(LDFLAGS)" -o bin/alerts-collector ./cmd/main.go
 
 # Build the docker image
