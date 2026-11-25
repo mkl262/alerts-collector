@@ -9,7 +9,7 @@ IMG ?= quay.io/morvencao/alerts-collector:latest
 # Parent go.work does not include this module; ignore it.
 export GOWORK=off
 
-VERSION ?= 0.1.0
+VERSION ?= 0.2.0
 GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
 BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 LDFLAGS := -s -w \
