@@ -1,16 +1,15 @@
 # Copyright Contributors to the Open Cluster Management project
 
-FROM golang:1.27-alpine AS builder
+FROM golang:1.27 AS builder
 
 WORKDIR /app
-
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
 
-RUN go mod download
+RUN make build
 
-RUN CGO_ENABLED=0 go build -o alerts-collector ./cmd/main.go
-
-FROM scratch
+FROM scratch AS prod
 
 ARG VCS_REF
 ARG VCS_URL
@@ -44,7 +43,7 @@ LABEL org.label-schema.vendor="Red Hat" \
     io.openshift.tags="$IMAGE_OPENSHIFT_TAGS"
 
 # install the binary
-COPY --from=builder --chown=root:root --chmod=755 /app/alerts-collector /alerts-collector
+COPY --from=builder --chown=root:root --chmod=755 /app/bin/alerts-collector /alerts-collector
 USER 1001
 
 ENTRYPOINT ["/alerts-collector"]

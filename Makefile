@@ -9,6 +9,14 @@ IMG ?= quay.io/morvencao/alerts-collector:latest
 # Parent go.work does not include this module; ignore it.
 export GOWORK=off
 
+VERSION ?= 0.1.0
+GIT_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)
+BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
+LDFLAGS := -s -w \
+	-X github.com/morvencao/alerts-collector/pkg/version.Version=$(VERSION) \
+	-X github.com/morvencao/alerts-collector/pkg/version.GitCommit=$(GIT_COMMIT) \
+	-X github.com/morvencao/alerts-collector/pkg/version.BuildDate=$(BUILD_DATE)
+
 .PHONY: fmt vet lint unit-tests e2e-tests build docker-build docker-push clean
 
 # Run go fmt against code
@@ -34,7 +42,7 @@ e2e-tests:
 
 # Build the binary
 build: unit-tests
-	@CGO_ENABLED=0 go build -a -installsuffix cgo -o bin/alerts-collector ./cmd/main.go
+	@CGO_ENABLED=0 go build -a -installsuffix cgo -ldflags="$(LDFLAGS)" -o bin/alerts-collector ./cmd/main.go
 
 # Build the docker image
 docker-build: build

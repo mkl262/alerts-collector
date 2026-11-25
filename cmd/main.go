@@ -14,6 +14,7 @@ import (
 	"github.com/go-kit/log/level"
 
 	"github.com/morvencao/alerts-collector/pkg/forwarder"
+	"github.com/morvencao/alerts-collector/pkg/version"
 	"github.com/morvencao/alerts-collector/pkg/webhook"
 )
 
@@ -71,7 +72,12 @@ func main() {
 		}
 	}()
 
-	_ = level.Info(l).Log("msg", "alerts collector initialized")
+	_ = level.Info(l).Log(
+		"msg", "alerts collector initialized",
+		"version", version.Version,
+		"commit", version.GitCommit,
+		"built", version.BuildDate,
+	)
 
 	// listening OS shutdown singal
 	signalChan := make(chan os.Signal, 1)
